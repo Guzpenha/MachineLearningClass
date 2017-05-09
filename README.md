@@ -1,6 +1,6 @@
 # Machine Learning Class at UFMG 2017
 
-Codes for Machine Learning class assignments at UFMG.
+Machine Learning class assignments at UFMG.
 
 ## TP1 - Feed Foward Network for MNIST
 
