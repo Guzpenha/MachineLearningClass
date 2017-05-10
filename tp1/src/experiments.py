@@ -1,23 +1,16 @@
-import numpy as np
-import pandas as pd
-
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import log_loss
 from sklearn.utils import shuffle
-from IPython import embed
 
-def sigmoid(x,deriv=False):
-	"""  This function calculates sigmoid of x"""	
-	if(deriv==True):
-		return x*(1-x)
+import numpy as np
 
-	return 1/(1+np.exp(-x))
+import pandas as pd
+
 
 class FeedFowardNetwork():
-	""" This class is for training a FFN with 2 layers """
+	""" This class is a 2 layer FFN used for MNIST digit recognition problem"""
 
-	def __init__(self, numHiddenUnits = 100, gradientMethod = "GD", learningRate = 0.01, numIter=1,batchSize=10):
-		self._numOutputs = 10
+	def __init__(self, numHiddenUnits = 100, gradientMethod = "GD", learningRate = 0.01, numIter=100,batchSize=10):		
 		self._numHiddenUnits = numHiddenUnits
 		self._gradientMethod = gradientMethod
 		self._learningRate = learningRate
@@ -27,17 +20,20 @@ class FeedFowardNetwork():
 		np.random.seed(1)
 
 	def fit(self, X, y, verbose =False):		
+		""" This function will fit the weights (synLayers) of a FNN using X and y (must have 10 classes)"""
+
 		# Start random weights
 		self._synLayer1 = 2 * np.random.random((X.shape[1],self._numHiddenUnits)) - 1
 		self._synLayer2 = 2 * np.random.random((self._numHiddenUnits,10)) - 1			
 		self._X = X
-		self._y = y		
-		# updateIterCount = 0
+		self._y = y				
 
+		# numIter is the number of epochs (number of times we go through all data)
 		for i in xrange(self._numIter):
 
 			self._X, self._y = shuffle(self._X, self._y)
 
+			# Depending on the method we use only certain amount of X
 			if(self._gradientMethod=="GD"):
 				batch_size = X.shape[0]
 			elif(self._gradientMethod=="SGD"):
@@ -51,74 +47,56 @@ class FeedFowardNetwork():
 				y = self._y[batch_step:batch_step+batch_size]
 							
 				# Foward propagate
-				l1 = sigmoid(np.dot(X,self._synLayer1))
-				l2 = sigmoid(np.dot(l1,self._synLayer2))
+				l1 = self.sigmoid(np.dot(X,self._synLayer1))
+				l2 = self.sigmoid(np.dot(l1,self._synLayer2))
 
 				# Calculate loss and deltas for both layers
 				loss = self.calculateLossDerivative(l2,y)
 				l2_delta = loss 		
 				l1_loss = loss.dot(self._synLayer2.T)
-				l1_delta = l1_loss * sigmoid(l1,deriv=True)				
+				l1_delta = l1_loss * self.sigmoid(l1,deriv=True)
 
 				# Update weights accordingly
 				self._synLayer2+= self._learningRate * (l1.T.dot(l2_delta))
 				self._synLayer1+= self._learningRate * (X.T.dot(l1_delta))
 				
-				# CODE FOR experiment using x as updates instead of epochs
-				# updateIterCount+=1
-				# if(updateIterCount == self._numIter):
-				# 	break
-				# if(verbose):				
-				# 	l1_test = sigmoid(np.dot(self._X,self._synLayer1))
-				# 	l2_test = sigmoid(np.dot(l1_test,self._synLayer2))
-				# 	print(self._gradientMethod + ";" +str(self._learningRate) +";" +str(self._numHiddenUnits) +";" + str(updateIterCount) + ";" + str(self.calculateLoss(self._y,l2_test)))
-			# if(updateIterCount == self._numIter):
-				# break
+			if(verbose and i%10==0):				
+				l1_test = self.sigmoid(np.dot(self._X,self._synLayer1))
+				l2_test = self.sigmoid(np.dot(l1_test,self._synLayer2))
+				print("Cross Entropy empirical error at epoch "+str(i)+": "+str(self.calculateLoss(self._y,l2_test)))
 
-			if(verbose):				
-				l1_test = sigmoid(np.dot(self._X,self._synLayer1))
-				l2_test = sigmoid(np.dot(l1_test,self._synLayer2))
-				print(self._gradientMethod + ";" +str(self._learningRate) +";" +str(self._numHiddenUnits) +";" + str(i) + ";" + str(self.calculateLoss(self._y,l2_test)) + ";"+ str(self._batchSize))
-
-	def calculateLoss(self,y_true,pred):		
+	def calculateLoss(self,y_true,pred):	
+		""" This functions calculates the cross entropy for analytical purposes"""
 		return log_loss(y_true,pred)
 
 	def calculateLossDerivative(self,pred,y_true):
+		"""  This function calculates the cross entropy derivative regarding the closest weights """	
 		y_true_one_hot = []
 		for y in y_true:
 			y_true_one_hot.append([0]*10)
 			y_true_one_hot[-1][y] = 1
 		return np.array(y_true_one_hot) - pred 
 
+	def sigmoid(self, x,deriv=False):
+		"""  This function calculates sigmoid of x"""	
+		x = np.clip(x,-500,500)
+
+		if(deriv==True):
+			return x*(1-x)
+
+		return 1/(1+np.exp(-x))
+
 def main():	
-	np.set_printoptions(precision=4)
-	np.set_printoptions(suppress=True)
-	
 	# Read and prepare data
-	data = pd.read_csv("../data/data_tp1",header=None,sep=",").rename(columns={0: "label"})	
+	data = pd.read_csv("../data/data_tp1",header=None,sep=",").rename(columns={0: "label"})
 	X = data[[c for c in data.columns if c !="label"]]
-	X = StandardScaler().fit_transform(X)	
-	X = np.c_[np.ones(X.shape[0]),X]
+	X = StandardScaler().fit_transform(X) #scaling features
+	X = np.c_[np.ones(X.shape[0]),X] #adding biases
 	y = data["label"]
 
 	# Fit the data using a FeedFowardNetwork
 	ffn = FeedFowardNetwork()
 	ffn.fit(X,y,verbose=True)
-
-	# Changing method , number of hidden units and learning rate experiment
-	# print("gradientMethod;learningRate;numHiddenUnits;updateIteration;crossEntropy;batchSize")		
-	# for method in ["GD","MB-GD","SGD"]:
-	# 	numiter = 1000
-	# 	for hUnits in [25,50,100]:			
-	# 		for lr in [0.01,0.5,1,10]:
-	# 			ffn = FeedFowardNetwork(gradientMethod=method,numIter=numiter,numHiddenUnits=hUnits,learningRate=lr)
-	# 			ffn.fit(X,y,verbose=True)
-
-	# Batch size experiment	
-	# print("gradientMethod;learningRate;numHiddenUnits;epoch;crossEntropy;batchSize")		
-	# for batch_size in [10,50]:
-	# 	ffn = FeedFowardNetwork(gradientMethod="MB-GD",numIter=100,numHiddenUnits=100,learningRate=0.01,batchSize=batch_size)
-	# 	ffn.fit(X,y,verbose=True)
 
 if __name__ == "__main__":
 	main()
