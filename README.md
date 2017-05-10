@@ -9,3 +9,5 @@ using Cross Entropy as cost function and Sigmoid activation units.
 
 The experimental evaluation includes an analysis of the Empirical Error over epochs by different choices of learning rate, batch size, learning method (GD, Mini-batch GD and SGD) and
 number of hidden units.
+
+![resumoResultados](https://github.com/Guzpenha/MachineLearningClass/blob/master/tp1/resumoResultados.png)
