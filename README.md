@@ -11,3 +11,8 @@ The experimental evaluation includes an analysis of the Empirical Error over epo
 number of hidden units.
 
 ![resumoResultados](https://github.com/Guzpenha/MachineLearningClass/blob/master/tp1/resumoResultados.png)
+
+## TP2 - Boosting 
+
+This assignment is to develop a Boosting Decision Stump algorithm and evaluate it using [Tic-Tac-Toe Data Set](https://archive.ics.uci.edu/ml/datasets/Tic-Tac-Toe+Endgame).
+
