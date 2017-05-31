@@ -36,16 +36,16 @@ class AdaBoostDecisionStump():
 				h = dsc.fit(feature,value)
 				pred = h.predict(X)
 				error = (pred != y).dot(self.sample_weights)
-				if(error.sum()<min_error_sum):
-					min_error_sum = error.sum()
+				if(error.mean()<min_error_sum):
+					min_error_sum = error.mean()
 					min_error = error
 					min_h = h
-		return h, min_error
+		return min_h, min_error
 		
 	def fit(self,X,y,verbose=False):		
 		#All instances have equal initial weight
 		self.sample_weights = np.ones(X.shape[0])/X.shape[0]
-		
+
 		for i in range(self.n_estimators):
 			h, error = self.best_single_stump(X,y)					
 			alpha = 0.5 * (np.log(1 - error.mean()) - np.log(error.mean())) # calculate alpha
@@ -73,7 +73,7 @@ def main():
 	y = data["label"]
 
 	# Fit the data using the AdaBoostDecisionStump
-	bds = AdaBoostDecisionStump(n_estimators=10)
+	bds = AdaBoostDecisionStump(n_estimators=20)
 	bds.fit(X,y,verbose=True)
 	pred = bds.predict(X)
 	print((pred==y).sum())
