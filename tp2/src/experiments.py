@@ -44,11 +44,11 @@ class AdaBoostDecisionStump():
 		
 	def fit(self,X,y,verbose=False):		
 		#All instances have equal initial weight
-		self.sample_weights = [1.0/X.shape[0]] * X.shape[0]
-
+		self.sample_weights = np.ones(X.shape[0])/X.shape[0]
+		
 		for i in range(self.n_estimators):
 			h, error = self.best_single_stump(X,y)					
-			alpha = 0.5 * (np.log(1 - error.sum()) - np.log(error.sum())) # calculate alpha
+			alpha = 0.5 * (np.log(1 - error.mean()) - np.log(error.mean())) # calculate alpha
 
 			self.hypothesis.append(h)
 			self.hypothesis_weights.append(alpha)
@@ -73,7 +73,7 @@ def main():
 	y = data["label"]
 
 	# Fit the data using the AdaBoostDecisionStump
-	bds = AdaBoostDecisionStump(n_estimators=5)
+	bds = AdaBoostDecisionStump(n_estimators=10)
 	bds.fit(X,y,verbose=True)
 	pred = bds.predict(X)
 	print((pred==y).sum())
