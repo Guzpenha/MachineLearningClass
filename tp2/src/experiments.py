@@ -7,49 +7,61 @@ class DecisionStumpCategorical():
 	
 	def __init__(self):
 		pass
-	
+
 	def fit(self,stumpFeature,predValue,verbose=False):
-		#labels must be the size of distinct values in stumpFeature
 		self.stumpFeature = stumpFeature
 		self.predValue = predValue
+		
+		return self
 
 	def predict(self,X):
-		y = pd.DataFrame(X[self.stumpFeature]).apply(lambda r,v=self.predValue: 1 if str(r)==v else -1,axis=1)
+		y = pd.DataFrame(X).apply(lambda r,v=self.predValue,f=self.stumpFeature: 1 if str(r[f])==v else -1,axis=1)
 		return y
 
-class BoostingDecisionStump():
+class AdaBoostDecisionStump():
 	
-	def __init__(self):
-		self.samples_weights = []
+	def __init__(self, n_estimators = 50):
+		self.sample_weights = []
 		self.hypothesis = []
 		self.hypothesis_weights = []
+		self.n_estimators = n_estimators
 
-
-	def best_single_stump(X,y):
-		#para cada variavel
-		#	para cada valor que a variavel possui
-			dsc = DecisionStumpCategorical(feature,valor)
-			h = dsc.fit(X)
-			pred = h.predict(X)
-			error = #soma de erros de prediç~ao * self.sample_weights
-
-		#retorna h com menor error 
+	def best_single_stump(self,X,y):
+		min_error_sum = 1000
+		min_error = []
+		h = None
+		for feature in range(X.shape[1]):
+			for value in np.unique(X[:,feature]):				
+				dsc = DecisionStumpCategorical()
+				h = dsc.fit(feature,value)
+				pred = h.predict(X)
+				error = (pred != y).dot(self.sample_weights)
+				if(error.sum()<min_error_sum):
+					min_error_sum = error.sum()
+					min_error = error
+					min_h = h
+		return h, min_error
 		
 	def fit(self,X,y,verbose=False):		
 		#All instances have equal initial weight
-		self.samples_weights = [1.0/X.shape[0]] * X.shape[0]
+		self.sample_weights = [1.0/X.shape[0]] * X.shape[0]
 
-		h = self.best_single_stump(X,y)
+		for i in range(self.n_estimators):
+			h, error = self.best_single_stump(X,y)					
+			alpha = 0.5 * (np.log(1 - error.sum()) - np.log(error.sum())) # calculate alpha
 
-		error = h.predict()
-		alpha = 0.5 * np.log((1 - error)/error) # calculate alpha
+			self.hypothesis.append(h)
+			self.hypothesis_weights.append(alpha)
 
-		self.hypothesis.append(h)
-		self.hypothesis_weights.append(alpha)
-		embed()
+			self.sample_weights = self.sample_weights * np.exp(-alpha * h.predict(X) * y)
+			self.sample_weights = self.sample_weights/self.sample_weights.sum()
 	
 	def predict(self,X):
-		pass
+		pred = np.zeros(X.shape[0])
+		for (h, alpha) in zip(self.hypothesis,self.hypothesis_weights):
+			pred+= h.predict(X) * alpha
+		# embed()
+		return np.sign(pred)
 
 def main():	
 	# Read and prepare data
@@ -60,9 +72,13 @@ def main():
 	X = data[[c for c in data.columns if c !="label"]].as_matrix()	
 	y = data["label"]
 
-	# Fit the data using the BoostingDecisionStump
-	bds = BoostingDecisionStump()
+	# Fit the data using the AdaBoostDecisionStump
+	bds = AdaBoostDecisionStump(n_estimators=5)
 	bds.fit(X,y,verbose=True)
+	pred = bds.predict(X)
+	print((pred==y).sum())
+	print(len(pred))
+	# embed()
 
 if __name__ == "__main__":
 	main()
