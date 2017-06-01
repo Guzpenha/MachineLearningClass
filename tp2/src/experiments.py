@@ -1,28 +1,30 @@
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
 from IPython import embed
 
 class DecisionStumpCategorical():
 	
 	def __init__(self):
-		self.column_pred = None
+		self.column_pred = None	
 
-	def fit(self,X,y,sample_weights):
-		# if(sample_weights== None):
-		# 	sample_weights = np.ones(X.shape[0])
-		best_error = 1
-		best_h_column = None		
+	def fit(self,X,y,sample_weight):			
+		best_error = 10
+		best_h_column = None	
+		errors=[]	
 		for c in range(X.shape[1]):
 			X[X[:,c] == 0,c] = -1
-			error = (X[:,c] != y).dot(sample_weights)			
+			error = (X[:,c] != y).dot(sample_weight)
+			errors.append(error)
 			if(error < best_error):
 				best_error = error
 				best_h_column = c
-		self.column_pred = best_h_column		
+		print(errors)
+		self.column_pred = best_h_column
 		return self
 
-	def predict(self,X):
+	def predict(self,X):		
 		return X[:,self.column_pred]
 
 class AdaBoostDecisionStump():
@@ -35,19 +37,20 @@ class AdaBoostDecisionStump():
 		
 	def fit(self,X,y,verbose=False):		
 		#All instances have equal initial weight
-		self.sample_weights = np.ones(X.shape[0])/X.shape[0]
+		self.sample_weights = np.ones(X.shape[0])/X.shape[0]		
 
-		for i in range(self.n_estimators):
+		for i in range(self.n_estimators):			
 			dsc = DecisionStumpCategorical()
-			h = dsc.fit(X,y,sample_weights=self.sample_weights)
+			# dsc = DecisionTreeClassifier(max_depth=1)
+			h = dsc.fit(X,y,sample_weight=self.sample_weights)
 			error = (h.predict(X) != y).dot(self.sample_weights)
-			alpha = 0.5 * (np.log(1 - error) - np.log(error)) # calculate alpha
+			alpha = 0.5 * (np.log((1 - error)/error)) # calculate alpha
 
 			self.hypothesis.append(h)
 			self.hypothesis_weights.append(alpha)
 
 			self.sample_weights = self.sample_weights * np.exp(-alpha * h.predict(X) * y)
-			self.sample_weights = self.sample_weights/self.sample_weights.sum()				
+			self.sample_weights = (self.sample_weights/self.sample_weights.sum()).as_matrix()			
 
 	def predict(self,X):
 		pred = np.zeros(X.shape[0])
@@ -65,7 +68,7 @@ def main():
 	y = data["label"]
 	
 	# Fit the data using the AdaBoostDecisionStump
-	for n_est in range(1,10):
+	for n_est in [5]: #range(1,10):
 		bds = AdaBoostDecisionStump(n_estimators=n_est)
 		# bds = AdaBoostClassifier(n_estimators=n_est)
 		bds.fit(X,y)
