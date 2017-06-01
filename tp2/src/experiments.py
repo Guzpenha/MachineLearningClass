@@ -13,7 +13,7 @@ class DecisionStumpCategorical():
 
 	def fit(self,X,y,sample_weight):
 		self.y = y		
-		best_error = 10		
+		best_error = float("inf")
 
 		for c in range(X.shape[1]):
 			cut_zeros = X[:,c] == 0
@@ -31,7 +31,7 @@ class DecisionStumpCategorical():
 				best_error = error
 				self.column_pred = c				
 				self.predictions = pred_map
-						
+
 		return self
 
 	def predict(self,X):
