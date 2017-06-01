@@ -11,20 +11,18 @@ class DecisionStumpCategorical():
 
 	def fit(self,X,y,sample_weight):			
 		best_error = 10
-		best_h_column = None	
-		errors=[]	
+		best_h_column = None			
 		for c in range(X.shape[1]):
 			X[X[:,c] == 0,c] = -1
-			error = (X[:,c] != y).dot(sample_weight)
-			errors.append(error)
+			error = (X[:,c] != y).dot(sample_weight)			
 			if(error < best_error):
 				best_error = error
-				best_h_column = c
-		print(errors)
+				best_h_column = c		
 		self.column_pred = best_h_column
 		return self
 
 	def predict(self,X):		
+		X[X[:,self.column_pred] == 0,self.column_pred] = -1
 		return X[:,self.column_pred]
 
 class AdaBoostDecisionStump():
@@ -68,7 +66,7 @@ def main():
 	y = data["label"]
 	
 	# Fit the data using the AdaBoostDecisionStump
-	for n_est in [5]: #range(1,10):
+	for n_est in range(1,10):
 		bds = AdaBoostDecisionStump(n_estimators=n_est)
 		# bds = AdaBoostClassifier(n_estimators=n_est)
 		bds.fit(X,y)
