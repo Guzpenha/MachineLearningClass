@@ -3,27 +3,42 @@ import pandas as pd
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 from IPython import embed
+from scipy.stats import mode
 
 class DecisionStumpCategorical():
 	
 	def __init__(self):
-		self.column_pred = None	
+		self.column_pred = None			
+		self.predictions = []
 
-	def fit(self,X,y,sample_weight):			
-		best_error = 10
-		best_h_column = None			
+	def fit(self,X,y,sample_weight):
+		self.y = y		
+		best_error = 10		
+
 		for c in range(X.shape[1]):
-			X[X[:,c] == 0,c] = -1
-			error = (X[:,c] != y).dot(sample_weight)			
+			cut_zeros = X[:,c] == 0
+			cut_ones = X[:,c] == 1
+			mode_0 = mode(y[cut_zeros])[0][0]
+			mode_1 = mode(y[cut_ones])[0][0]
+
+			pred = np.ones(X.shape[0])
+			pred[cut_zeros] = mode_0
+			pred[cut_ones] = mode_1
+			pred_map = (mode_0,mode_1)			
+			error = (pred != y).dot(sample_weight)			
+
 			if(error < best_error):
 				best_error = error
-				best_h_column = c		
-		self.column_pred = best_h_column
+				self.column_pred = c				
+				self.predictions = pred_map
+						
 		return self
 
-	def predict(self,X):		
-		X[X[:,self.column_pred] == 0,self.column_pred] = -1
-		return X[:,self.column_pred]
+	def predict(self,X):
+		pred = np.ones(X.shape[0])
+		pred[X[:,self.column_pred] == 0] = self.predictions[0]
+		pred[X[:,self.column_pred] == 1] = self.predictions[1]
+		return pred
 
 class AdaBoostDecisionStump():
 	
@@ -48,7 +63,7 @@ class AdaBoostDecisionStump():
 			self.hypothesis_weights.append(alpha)
 
 			self.sample_weights = self.sample_weights * np.exp(-alpha * h.predict(X) * y)
-			self.sample_weights = (self.sample_weights/self.sample_weights.sum()).as_matrix()			
+			self.sample_weights = (self.sample_weights/self.sample_weights.sum()).as_matrix()
 
 	def predict(self,X):
 		pred = np.zeros(X.shape[0])
@@ -66,7 +81,7 @@ def main():
 	y = data["label"]
 	
 	# Fit the data using the AdaBoostDecisionStump
-	for n_est in range(1,10):
+	for n_est in range(1,20):
 		bds = AdaBoostDecisionStump(n_estimators=n_est)
 		# bds = AdaBoostClassifier(n_estimators=n_est)
 		bds.fit(X,y)
