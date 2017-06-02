@@ -1,11 +1,9 @@
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.tree import DecisionTreeClassifier
-from IPython import embed
-from scipy.stats import mode
+from sklearn.model_selection import cross_val_score
+from sklearn.base import BaseEstimator, ClassifierMixin
 
-class DecisionStumpCategorical():
+class CategoricalStump():
 	
 	def __init__(self):
 		self.column_pred = None
@@ -15,16 +13,18 @@ class DecisionStumpCategorical():
 	def fit(self,X_input,y,sample_weight):
 		X = X_input.copy()
 		best_error = float("inf")
-		best_h_column = None		
+		best_h_column = None
 
+		#stumps that predict the column values
 		for c in range(X.shape[1]):
 			X[X[:,c] == 0,c] = -1
-			error = (X[:,c] != y).dot(sample_weight)			
+			error = (X[:,c] != y).dot(sample_weight)
 			if(error < best_error):
 				best_error = error
 				best_h_column = c
 				self.inverted = False
 
+		#stumps that predict the inverse of the column values
 		for c in range(X.shape[1]):						
 			X[X[:,c] == 1,c] = -1
 			X[X[:,c] == 0,c] =  1
@@ -34,13 +34,14 @@ class DecisionStumpCategorical():
 				best_h_column = c
 				self.inverted = True
 
+		#constant 1 prediction
 		error = (np.ones(X.shape[0]) != y).dot(sample_weight)
 		if(error < best_error):
 			self.constant = 1
+		#constant -1 prediction
 		error = (np.ones(X.shape[0])*-1 != y).dot(sample_weight)
 		if(error < best_error):
 			self.constant = -1
-		
 
 		self.column_pred = best_h_column
 		return self
@@ -50,7 +51,7 @@ class DecisionStumpCategorical():
 		if(self.constant == 1):
 			return np.ones(X.shape[0])
 		elif(self.constant == -1):
-			return np.ones(X.shape[0]) *-1			
+			return np.ones(X.shape[0]) *-1
 
 		if(self.inverted):
 			X[X[:,self.column_pred] == 1,self.column_pred] = -1
@@ -59,90 +60,54 @@ class DecisionStumpCategorical():
 			X[X[:,self.column_pred] == 0,self.column_pred] = -1
 		return X[:,self.column_pred]
 
-
-# class DecisionStumpCategoricalTree():
+class AdaBoostCategoricalClassifier(BaseEstimator,ClassifierMixin):
 	
-# 	def __init__(self):
-# 		self.column_pred = None			
-# 		self.predictions = []
-
-# 	def fit(self,X,y,sample_weight):
-# 		self.y = y		
-# 		best_error = float("inf")
-
-# 		for c in range(X.shape[1]):
-# 			cut_zeros = X[:,c] == 0
-# 			cut_ones = X[:,c] == 1
-# 			mode_0 = mode(y[cut_zeros])[0][0]
-# 			mode_1 = mode(y[cut_ones])[0][0]
-
-# 			pred = np.ones(X.shape[0])
-# 			pred[cut_zeros] = mode_0
-# 			pred[cut_ones] = mode_1
-# 			pred_map = (mode_0,mode_1)			
-# 			error = (pred != y).dot(sample_weight)			
-
-# 			if(error < best_error):
-# 				best_error = error
-# 				self.column_pred = c				
-# 				self.predictions = pred_map
-
-# 		return self
-
-# 	def predict(self,X):
-# 		pred = np.ones(X.shape[0])
-# 		pred[X[:,self.column_pred] == 0] = self.predictions[0]
-# 		pred[X[:,self.column_pred] == 1] = self.predictions[1]
-# 		return pred
-
-class AdaBoostDecisionStump():
-	
-	def __init__(self, n_estimators = 50):
+	def __init__(self, n_estimators = 500):
 		self.sample_weights = []
-		self.hypothesis = []
-		self.hypothesis_weights = []
+		self.estimators = []
+		self.estimators_weights = []
 		self.n_estimators = n_estimators
 		
-	def fit(self,X,y,verbose=False):		
+	def fit(self,X,y,):
 		#All instances have equal initial weight
 		self.sample_weights = np.ones(X.shape[0])/X.shape[0]		
 
 		for i in range(self.n_estimators):			
-			dsc = DecisionStumpCategorical()
-			# dsc = DecisionTreeClassifier(max_depth=1)
-			h = dsc.fit(X,y,sample_weight=self.sample_weights)
-			# print(h.predict(X))
+			dsc = CategoricalStump()			
+			h = dsc.fit(X,y,sample_weight=self.sample_weights)			
 			error = (h.predict(X) != y).dot(self.sample_weights)
-			alpha = 0.5 * (np.log((1 - error)/error)) # calculate alpha
+			alpha = 0.5 * (np.log((1 - error)/error)) 
 
-			self.hypothesis.append(h)
-			self.hypothesis_weights.append(alpha)
+			self.estimators.append(h)
+			self.estimators_weights.append(alpha)
 
 			self.sample_weights = self.sample_weights * np.exp(-alpha * h.predict(X) * y)
 			self.sample_weights = (self.sample_weights/self.sample_weights.sum()).as_matrix()			
 
 	def predict(self,X):
 		pred = np.zeros(X.shape[0])
-		for (h, alpha) in zip(self.hypothesis,self.hypothesis_weights):
+		for (h, alpha) in zip(self.estimators,self.estimators_weights):
 			pred+= h.predict(X) * alpha	
 		return np.sign(pred)
 
 def main():	
-	# Read and prepare data
 	data = pd.read_csv("../data/tictactoe.csv",header=None,sep=",").rename(columns={9: "label"})
 	
-	#Preprocess data	
+	#Preprocess data
 	data["label"] = data.apply(lambda r: 1 if r.label == "positive" else -1,axis=1)
 	X = pd.get_dummies(data[[c for c in data.columns if c !="label"]]).as_matrix().astype(int)
-	y = data["label"]	
-	# Fit the data using the AdaBoostDecisionStump
-	for n_est in [1000]:#range(1,1000):
-		# bds = AdaBoostDecisionStump(n_estimators=n_est)
-		bds = AdaBoostClassifier(n_estimators=n_est)
-		bds.fit(X,y)
-		pred = bds.predict(X)
-		print("Acuracia: " +str((pred==y).sum()/float(len(pred))))
-	# embed()
+	y = data["label"]
+
+	# Fit the data using the AdaBoostCategoricalClassifier
+	for n_estimators in [100,500,1000,1500]:
+		print("CV accuracy scores for "+str(n_estimators)+": ")
+		clf = AdaBoostCategoricalClassifier(n_estimators=n_estimators)
+		scores = cross_val_score(clf, X, y, cv=5,scoring='accuracy')
+		print(scores)
+
+	# clf.fit(X,y)
+	# pred = clf.predict(X)
+	# print("Acuracia : " +str((pred==y).sum()/float(len(pred))))
 
 if __name__ == "__main__":
 	main()
