@@ -12,7 +12,7 @@ number of hidden units.
 
 ![resumoResultados](https://github.com/Guzpenha/MachineLearningClass/blob/master/tp1/resumoResultados.png)
 
-## TP2 - Boosting 
+## TP2 - AdaBoostClassifier for categorical data 
 
-This assignment is to develop a Boosting Decision Stump algorithm and evaluate it using [Tic-Tac-Toe Data Set](https://archive.ics.uci.edu/ml/datasets/Tic-Tac-Toe+Endgame).
+This assignment is to develop a AdaBoostClassifier algorithm using Decision Stump that works on categorical data  and evaluate it using cross validation on [Tic-Tac-Toe Data Set](https://archive.ics.uci.edu/ml/datasets/Tic-Tac-Toe+Endgame).
 
