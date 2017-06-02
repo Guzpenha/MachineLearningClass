@@ -70,11 +70,11 @@ class AdaBoostCategoricalClassifier(BaseEstimator,ClassifierMixin):
 		
 	def fit(self,X,y,):
 		#All instances have equal initial weight
-		self.sample_weights = np.ones(X.shape[0])/X.shape[0]		
+		self.sample_weights = np.ones(X.shape[0])/X.shape[0]
 
 		for i in range(self.n_estimators):			
 			dsc = CategoricalStump()			
-			h = dsc.fit(X,y,sample_weight=self.sample_weights)			
+			h = dsc.fit(X,y,sample_weight=self.sample_weights)
 			error = (h.predict(X) != y).dot(self.sample_weights)
 			alpha = 0.5 * (np.log((1 - error)/error)) 
 
@@ -82,7 +82,7 @@ class AdaBoostCategoricalClassifier(BaseEstimator,ClassifierMixin):
 			self.estimators_weights.append(alpha)
 
 			self.sample_weights = self.sample_weights * np.exp(-alpha * h.predict(X) * y)
-			self.sample_weights = (self.sample_weights/self.sample_weights.sum()).as_matrix()			
+			self.sample_weights = (self.sample_weights/self.sample_weights.sum()).as_matrix()
 
 	def predict(self,X):
 		pred = np.zeros(X.shape[0])
@@ -100,14 +100,10 @@ def main():
 
 	# Fit the data using the AdaBoostCategoricalClassifier
 	for n_estimators in [100,500,1000,1500]:
-		print("CV accuracy scores for "+str(n_estimators)+": ")
+		print("CV accuracy scores for n_estimators="+str(n_estimators)+" :")
 		clf = AdaBoostCategoricalClassifier(n_estimators=n_estimators)
 		scores = cross_val_score(clf, X, y, cv=5,scoring='accuracy')
 		print(scores)
-
-	# clf.fit(X,y)
-	# pred = clf.predict(X)
-	# print("Acuracia : " +str((pred==y).sum()/float(len(pred))))
 
 if __name__ == "__main__":
 	main()
