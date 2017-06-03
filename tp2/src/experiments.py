@@ -4,13 +4,31 @@ from sklearn.model_selection import cross_val_score
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 class CategoricalStump():
-	
-	def __init__(self):
+	""" CategoricalStump is a binary classifier that learns the best stump on categorical data """
+
+	def __init__(self):		
 		self.column_pred = None
 		self.inverted = None
 		self.constant = False
 
 	def fit(self,X_input,y,sample_weight):
+		"""
+		This methods fits the best stump to the input X, considering labels y,
+		by trying all possible stumps and choosing the one with least error.
+
+		Inputs
+		-------
+			X_input: a numpy array contaning only one hot encoded features (0 or 1 only)
+			y: a numpy array contaning the labels, +1 when true -1 when false
+			sample_weight: numpy array contaning the weights that each instance in X receive 
+						   when calculating errors.
+
+		Return
+		--------
+			self: fitted CategoricalStump() classifier
+
+		"""
+
 		X = X_input.copy()
 		best_error = float("inf")
 		best_h_column = None
@@ -47,6 +65,19 @@ class CategoricalStump():
 		return self
 
 	def predict(self,X_input):
+		"""
+		This methods uses the learned model for predicting outputs, expects that
+		.fit() was called before.
+
+		Inputs
+		-------
+			X_input: a numpy array contaning only one hot encoded features (0 or 1 only)			
+
+		Return
+		--------
+			self: numpy arrary containing predictions for X_input
+
+		"""
 		X = X_input.copy()
 		if(self.constant == 1):
 			return np.ones(X.shape[0])
@@ -61,14 +92,15 @@ class CategoricalStump():
 		return X[:,self.column_pred]
 
 class AdaBoostCategoricalClassifier(BaseEstimator,ClassifierMixin):
-	
+	""" AdaBoostCategoricalClassifier is a binary classifier that uses ensembling to reduce bias error"""
+
 	def __init__(self, n_estimators = 500):
 		self.sample_weights = []
 		self.estimators = []
 		self.estimators_weights = []
 		self.n_estimators = n_estimators
 		
-	def fit(self,X,y,):
+	def fit(self,X,y):
 		#All instances have equal initial weight
 		self.sample_weights = np.ones(X.shape[0])/X.shape[0]
 
@@ -99,11 +131,12 @@ def main():
 	y = data["label"]
 
 	# Fit the data using the AdaBoostCategoricalClassifier
-	for n_estimators in [100,500,1000,1500]:
-		print("CV accuracy scores for n_estimators="+str(n_estimators)+" :")
+	print("n_estimators,AverageAccuracy")
+	for n_estimators in range(1001):
+		# print("CV accuracy scores for n_estimators="+str(n_estimators)+" :")
 		clf = AdaBoostCategoricalClassifier(n_estimators=n_estimators)
 		scores = cross_val_score(clf, X, y, cv=5,scoring='accuracy')
-		print(scores)
+		print(str(n_estimators)+ ","+str(np.array(scores).mean()))
 
 if __name__ == "__main__":
 	main()
