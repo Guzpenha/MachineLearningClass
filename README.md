@@ -14,5 +14,8 @@ number of hidden units.
 
 ## TP2 - AdaBoostClassifier for categorical data 
 
-This assignment is to develop a AdaBoostClassifier algorithm using Decision Stump that works on categorical data  and evaluate it using cross validation on [Tic-Tac-Toe Data Set](https://archive.ics.uci.edu/ml/datasets/Tic-Tac-Toe+Endgame).
+This assignment is to develop a binary AdaBoostClassifier algorithm, using Decision Stumps as weak leaners, that works on categorical data and evaluate it using cross validation on [Tic-Tac-Toe Data Set](https://archive.ics.uci.edu/ml/datasets/Tic-Tac-Toe+Endgame).
 
+The experimental evaluation shows how the classifier behaves when we use more weak base estimators.
+
+![resultsAdaBoost](https://github.com/Guzpenha/MachineLearningClass/blob/master/tp2/nEstimators.png)
